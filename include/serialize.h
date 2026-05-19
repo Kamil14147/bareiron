@@ -1,6 +1,11 @@
 #ifndef SERIALIZE_H
 #define SERIALIZE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include "globals.h"
 
 #ifdef SYNC_WORLD_TO_DISK
@@ -16,6 +21,11 @@
   #define writePlayerDataToDisk()
   #define writeDataToDiskOnInterval()
   #define initSerializer() 0
+#endif
+
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

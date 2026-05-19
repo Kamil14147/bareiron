@@ -1,6 +1,11 @@
 #ifndef H_GLOBALS
 #define H_GLOBALS
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include <stdint.h>
 #include <unistd.h>
 
@@ -20,7 +25,7 @@
 
 // How many players to keep in memory, NOT the amount of concurrent players
 // Even when offline, players who have logged on before take up a slot
-#define MAX_PLAYERS 16
+#define MAX_PLAYERS 4
 
 // How many mobs to allocate memory for
 #define MAX_MOBS (MAX_PLAYERS)
@@ -72,7 +77,7 @@
 
 // How many player-made block changes to allow
 // Determines the fixed amount of memory allocated to blocks
-#define MAX_BLOCK_CHANGES 20000
+#define MAX_BLOCK_CHANGES 4000
 
 // If defined, writes and reads world data to/from disk (or flash).
 // This is a synchronous operation, and can cause performance issues if
@@ -272,5 +277,10 @@ extern PlayerData player_data[MAX_PLAYERS];
 extern int player_data_count;
 
 extern MobData mob_data[MAX_MOBS];
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
