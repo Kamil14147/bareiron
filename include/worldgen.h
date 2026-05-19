@@ -1,6 +1,11 @@
 #ifndef H_WORLDGEN
 #define H_WORLDGEN
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include <stdint.h>
 
 typedef struct {
@@ -26,5 +31,10 @@ uint8_t getBlockAt (int x, int y, int z);
 
 extern uint8_t chunk_section[4096];
 uint8_t buildChunkSection (int cx, int cy, int cz);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

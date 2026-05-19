@@ -1,6 +1,11 @@
 #ifndef H_TOOLS
 #define H_TOOLS
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include <unistd.h>
 
 #include "globals.h"
@@ -45,6 +50,11 @@ uint64_t splitmix64 (uint64_t state);
   #define get_program_time esp_timer_get_time
 #else
   int64_t get_program_time ();
+#endif
+
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

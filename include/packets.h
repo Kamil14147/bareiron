@@ -1,6 +1,11 @@
 #ifndef H_PACKETS
 #define H_PACKETS
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 // Serverbound packets
 int cs_handshake (int client_fd);
 int cs_loginStart (int client_fd, uint8_t *uuid, char *name);
@@ -61,5 +66,10 @@ int sc_entityEvent (int client_fd, int entity_id, uint8_t status);
 int sc_removeEntity (int client_fd, int entity_id);
 int sc_pickupItem (int client_fd, int collected, int collector, uint8_t count);
 int sc_registries (int client_fd);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

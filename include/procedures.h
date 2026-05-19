@@ -1,6 +1,11 @@
 #ifndef H_PROCEDURES
 #define H_PROCEDURES
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include <unistd.h>
 
 #include "globals.h"
@@ -56,5 +61,10 @@ ssize_t writeEntityData (int client_fd, EntityData *data);
 
 int sizeEntityData (EntityData *data);
 int sizeEntityMetadata (EntityData *metadata, size_t length);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
