@@ -3,9 +3,13 @@ name: Arduino ESP32 Rework
 on:
   push:
     branches: [rework/arduino-esp32]
+    paths-ignore: ['dist/**']
   pull_request:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -34,15 +38,27 @@ jobs:
         run: python3 tools/prepare_arduino_v2.py
 
       - name: Compile Arduino ESP32 Dev Module
-        run: arduino-cli compile --fqbn esp32:esp32:esp32 arduino/BareIronRework
+        run: arduino-cli compile --export-binaries --fqbn esp32:esp32:esp32 arduino/BareIronRework
 
-      - name: Package sketch
+      - name: Package sketch and firmware
         run: |
-          mkdir -p dist
-          zip -r dist/BareIron-Rework-ESP32-Arduino.zip arduino/BareIronRework
+          mkdir -p dist/package
+          cp -r arduino/BareIronRework dist/package/source
+          find arduino/BareIronRework/build -type f \( -name '*.bin' -o -name '*.elf' -o -name '*.partitions.bin' -o -name '*.bootloader.bin' -o -name '*.map' \) -exec cp {} dist/package/ \;
+          cd dist
+          zip -r BareIron-Rework-ESP32-Arduino.zip package
 
       - uses: actions/upload-artifact@v4
         with:
           name: BareIron-Rework-ESP32-Arduino
           path: dist/BareIron-Rework-ESP32-Arduino.zip
           if-no-files-found: error
+
+      - name: Publish verified package to branch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add dist/BareIron-Rework-ESP32-Arduino.zip
+          git diff --cached --quiet && exit 0
+          git commit -m 'build: publish verified ESP32 firmware [skip ci]'
+          git push
