@@ -3,6 +3,8 @@ name: Arduino ESP32 Rework
 on:
   push:
     branches: [rework/arduino-esp32]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -11,8 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
@@ -30,22 +31,17 @@ jobs:
           arduino-cli core install esp32:esp32
 
       - name: Prepare real BareIron sources
-        run: python3 tools/prepare_arduino.py
+        run: python3 tools/prepare_arduino_v2.py
 
-      - name: Compile Arduino sketch
+      - name: Compile Arduino ESP32 Dev Module
+        run: arduino-cli compile --fqbn esp32:esp32:esp32 arduino/BareIronRework
+
+      - name: Package sketch
         run: |
-          arduino-cli compile --fqbn esp32:esp32:esp32 arduino/BareIronRework
+          mkdir -p dist
+          zip -r dist/BareIron-Rework-ESP32-Arduino.zip arduino/BareIronRework
 
-      - name: Package source and firmware
-        run: |
-          mkdir -p dist/package
-          cp -r arduino/BareIronRework dist/package/
-          cp -r arduino/BareIronRework/build dist/package/ 2>/dev/null || true
-          cd dist
-          zip -r BareIron-Rework-ESP32-Arduino.zip package
-
-      - name: Upload firmware package
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: BareIron-Rework-ESP32-Arduino
           path: dist/BareIron-Rework-ESP32-Arduino.zip
