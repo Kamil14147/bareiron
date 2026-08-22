@@ -1,6 +1,8 @@
 name: Final ESP32 Firmware Build
 
 on:
+  push:
+    branches: [main]
   pull_request_target:
     types: [synchronize, opened, reopened]
     branches: [main]
@@ -14,7 +16,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR code
+      - name: Checkout target code
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
