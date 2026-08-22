@@ -4,8 +4,6 @@ on:
   push:
     branches: [rework/arduino-esp32]
     paths-ignore: ['dist/**']
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -54,11 +52,7 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add dist
           git diff --cached --quiet && exit 1
-          if [ "$(cat build.rc)" = "0" ]; then
-            git commit -m 'build: publish verified ESP32 firmware [skip ci]'
-          else
-            git commit -m 'build: publish ESP32 build log [skip ci]'
-          fi
+          if [ "$(cat build.rc)" = "0" ]; then git commit -m 'build: publish verified ESP32 firmware [skip ci]'; else git commit -m 'build: publish ESP32 build log [skip ci]'; fi
           git push
       - name: Upload final artifact
         if: ${{ hashFiles('arduino/BareIronRework/*.bin') != '' }}
