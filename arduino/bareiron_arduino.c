@@ -8,7 +8,6 @@
 #endif
 
 volatile uint8_t bareiron_should_run = 0;
-volatile uint32_t bareiron_active_us = 0;
 int bareiron_clients[MAX_PLAYERS];
 
 extern int bareiron_server_main(void);
@@ -52,10 +51,7 @@ int bareiron_player_get(int index, char *name, int cap, short *x, uint8_t *y, sh
   if (index < 0 || index >= MAX_PLAYERS) return 0;
   if (player_data[index].client_fd == -1) return 0;
   if (player_data[index].flags & 0x20) return 0;
-  if (name && cap > 0) {
-    strncpy(name, player_data[index].name, (size_t)cap - 1);
-    name[cap - 1] = 0;
-  }
+  if (name && cap > 0) { strncpy(name, player_data[index].name, (size_t)cap - 1); name[cap - 1] = 0; }
   if (x) *x = player_data[index].x;
   if (y) *y = player_data[index].y;
   if (z) *z = player_data[index].z;
@@ -69,8 +65,24 @@ int bareiron_kick(int index) {
 }
 
 uint32_t bareiron_cpu_load_percent(void) {
-  uint32_t us = bareiron_active_us;
-  bareiron_active_us = 0;
-  if (us > 1000000UL) us = 1000000UL;
-  return us / 10000UL;
+#ifdef ESP_PLATFORM
+#if defined(configUSE_TRACE_FACILITY) && defined(configGENERATE_RUN_TIME_STATS) && configUSE_TRACE_FACILITY && configGENERATE_RUN_TIME_STATS
+  TaskStatus_t tasks[24];
+  UBaseType_t total_tasks = 0;
+  uint32_t total_runtime = 0;
+  UBaseType_t n = uxTaskGetSystemState(tasks, 24, &total_runtime);
+  if (n && total_runtime) {
+    uint32_t idle_runtime = 0;
+    for (UBaseType_t i = 0; i < n; ++i) {
+      const char *name = tasks[i].pcTaskName;
+      if (name && (strcmp(name, "IDLE0") == 0 || strcmp(name, "IDLE1") == 0)) idle_runtime += tasks[i].ulRunTimeCounter;
+    }
+    uint32_t busy = total_runtime > idle_runtime ? total_runtime - idle_runtime : 0;
+    return (busy * 100UL) / total_runtime;
+  }
+#endif
+  return bareiron_running() ? 100 : 0;
+#else
+  return bareiron_running() ? 100 : 0;
+#endif
 }
