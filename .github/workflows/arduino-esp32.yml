@@ -8,57 +8,60 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-
       - name: Install Arduino CLI
         run: |
           curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
           echo "$HOME/bin" >> "$GITHUB_PATH"
-          arduino-cli version
-
       - name: Install ESP32 core
         run: |
           arduino-cli config init --overwrite
           arduino-cli config add board_manager https://espressif.github.io/arduino-esp32/package_esp32_index.json
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
-
-      - name: Prepare real BareIron sources
-        run: python3 tools/prepare_arduino_v2.py
-
-      - name: Compile Arduino ESP32 Dev Module
-        run: arduino-cli compile --export-binaries --fqbn esp32:esp32:esp32 arduino/BareIronRework
-
-      - name: Package sketch and firmware
+      - name: Prepare final source
+        run: python3 tools/build_arduino_final.py
+      - name: Compile firmware
         run: |
-          mkdir -p dist/package
-          cp -r arduino/BareIronRework dist/package/source
-          find arduino/BareIronRework/build -type f \( -name '*.bin' -o -name '*.elf' -o -name '*.partitions.bin' -o -name '*.bootloader.bin' -o -name '*.map' \) -exec cp {} dist/package/ \;
-          cd dist
-          zip -r BareIron-Rework-ESP32-Arduino.zip package
-
-      - uses: actions/upload-artifact@v4
+          set +e
+          arduino-cli compile --export-binaries --fqbn esp32:esp32:esp32 arduino/BareIronRework 2>&1 | tee build.log
+          rc=${PIPESTATUS[0]}
+          echo "$rc" > build.rc
+          exit 0
+      - name: Package debug and source
+        if: always()
+        run: |
+          mkdir -p dist/debug
+          cp -f build.log build.rc dist/debug/ || true
+          cp -r arduino/BareIronRework dist/debug/source || true
+          cd dist/debug && zip -r ../BareIron-debug.zip .
+      - name: Upload debug artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: BareIron-debug
+          path: dist/BareIron-debug.zip
+      - name: Package verified firmware
+        if: ${{ hashFiles('build.rc') != '' && hashFiles('arduino/BareIronRework/*.bin') != '' }}
+        run: |
+          mkdir -p dist/final
+          cp -r arduino/BareIronRework dist/final/source
+          find arduino/BareIronRework -type f \( -name '*.bin' -o -name '*.elf' -o -name '*.map' \) -exec cp {} dist/final/ \;
+          cp build.log dist/final/build.log
+          cd dist/final && zip -r ../BareIron-Rework-ESP32-Arduino.zip .
+      - name: Upload verified firmware
+        if: ${{ hashFiles('arduino/BareIronRework/*.bin') != '' }}
+        uses: actions/upload-artifact@v4
         with:
           name: BareIron-Rework-ESP32-Arduino
           path: dist/BareIron-Rework-ESP32-Arduino.zip
-          if-no-files-found: error
-
-      - name: Publish verified package to branch
+      - name: Fail when compiler failed
         run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add dist/BareIron-Rework-ESP32-Arduino.zip
-          git diff --cached --quiet && exit 0
-          git commit -m 'build: publish verified ESP32 firmware [skip ci]'
-          git push
+          test "$(cat build.rc)" = "0"
