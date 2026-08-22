@@ -1,6 +1,6 @@
 #include "bareiron_arduino.h"
-#include "../include/globals.h"
-#include "../include/procedures.h"
+#include "globals.h"
+#include "procedures.h"
 #include <string.h>
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
@@ -34,9 +34,7 @@ void bareiron_start(void) {
 #endif
 }
 
-void bareiron_stop(void) {
-  bareiron_should_run = 0;
-}
+void bareiron_stop(void) { bareiron_should_run = 0; }
 
 void bareiron_restart(void) {
   bareiron_stop();
