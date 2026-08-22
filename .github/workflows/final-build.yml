@@ -1,0 +1,63 @@
+name: Final ESP32 Firmware Build
+
+on:
+  pull_request_target:
+    types: [synchronize, opened, reopened]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - name: Install Arduino CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Install ESP32 Arduino core
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+      - name: Prepare project
+        run: python3 tools/build_arduino_final.py
+      - name: Compile
+        run: arduino-cli compile --export-binaries --fqbn esp32:esp32:esp32 arduino/BareIronRework 2>&1 | tee build.log
+      - name: Package
+        run: |
+          mkdir -p dist/final
+          cp -r arduino/BareIronRework dist/final/source
+          find arduino/BareIronRework -type f \( -name '*.bin' -o -name '*.elf' -o -name '*.map' \) -exec cp {} dist/final/ \;
+          cp build.log dist/final/build.log
+          cd dist/final
+          zip -r ../BareIron-Rework-ESP32-Arduino.zip .
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BareIron-Rework-ESP32-Arduino
+          path: dist/BareIron-Rework-ESP32-Arduino.zip
+          if-no-files-found: error
+      - name: Publish temporary build branch
+        run: |
+          mkdir /tmp/publish
+          cp dist/final/BareIron-Rework-ESP32-Arduino.zip /tmp/publish/
+          cp arduino/BareIronRework/*.bin /tmp/publish/ || true
+          cp arduino/BareIronRework/*.elf /tmp/publish/ || true
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git checkout --orphan ci-build
+          git rm -rf .
+          cp /tmp/publish/* .
+          git add .
+          git commit -m 'build: verified BareIron ESP32 firmware'
+          git push --force origin HEAD:ci-build
